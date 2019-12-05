@@ -15,6 +15,20 @@ Joint 2: -5.02655  - -0.215708
 Joint 3: 0.0221239 - 3.4292
 Joint 4: 0.110619  - 5.64159
 */
+double Array_Joints_Range[5][2] =
+{
+{0.0100692, 5.84014},
+{0.0100692, 2.61799},
+{-5.02655, -0.215708},
+{0.0221239, 3.4292},
+{0.110619, 5.64159}
+};
+
+char Pressed_Key = 0;
+bool Flag_Move_Arm_Joints = false;
+double Current_Arm_Joint_Position = 0.11;
+int Current_Arm_Joint = 0;
+double Step_Position = 0.1;
 
 ros::Publisher platformPublisher;
 ros::Publisher armPublisher;
@@ -65,13 +79,16 @@ brics_actuator::JointPositions createGripperPositionCommand(double newPosition)
 	return msg;
 }
 
+brics_actuator::JointPositions msg;
+std::vector<double> jointvalues(5);
+
 using namespace std;
 static struct termios stored_settings;
      
 void moveArm_Home() 
 {
-	brics_actuator::JointPositions msg;
-	std::vector<double> jointvalues(5);
+	//brics_actuator::JointPositions msg;
+	//std::vector<double> jointvalues(5);
 
 	// move arm back to home position
 	jointvalues[0] = 0.11;
@@ -79,16 +96,17 @@ void moveArm_Home()
 	jointvalues[2] = -0.11;
 	jointvalues[3] = 0.11;
 	jointvalues[4] = 0.111;
+
 	msg = createArmPositionCommand(jointvalues);
 	armPublisher.publish(msg);
 
-	ros::Duration(5).sleep();
+	ros::Duration(2).sleep();
 }
 
 void moveArm_Up() 
 {
-	brics_actuator::JointPositions msg;
-	std::vector<double> jointvalues(5);
+	//brics_actuator::JointPositions msg;
+	//std::vector<double> jointvalues(5);
 
 	// move arm back to home position
 	jointvalues[0] = 2.95;
@@ -99,7 +117,7 @@ void moveArm_Up()
 	msg = createArmPositionCommand(jointvalues);
 	armPublisher.publish(msg);
 
-	ros::Duration(3).sleep();
+	ros::Duration(2).sleep();
 }
 
 void set_keypress(void)
@@ -125,13 +143,42 @@ void reset_keypress(void)
 	return;
 }
 
+void Set_Joint_Position(int Number_Of_Joint, double Angle)
+{
+	jointvalues[0] = 0.11;
+	jointvalues[1] = 0.11;
+	jointvalues[2] = -0.11;
+	jointvalues[3] = 0.11;
+	jointvalues[4] = 0.111;
+	jointvalues[Number_Of_Joint] = Angle;
+}
+
+void Check_Joint_Range(int Joint_Number)
+{
+	if(jointvalues[Joint_Number] < Array_Joints_Range[Joint_Number][0])
+	{
+		jointvalues[Joint_Number] = Array_Joints_Range[Joint_Number][0];
+		Current_Arm_Joint_Position = Array_Joints_Range[Joint_Number][0];
+		ROS_INFO("Joint is out of minimum range");		
+	}
+	else if(jointvalues[Joint_Number] > Array_Joints_Range[Joint_Number][1])
+	{
+		jointvalues[Joint_Number] = Array_Joints_Range[Joint_Number][1];
+		Current_Arm_Joint_Position = Array_Joints_Range[Joint_Number][1];
+		ROS_INFO("Joint is out of maximum range");
+	}	
+}
+
+void Arm_Publish()
+{
+	msg = createArmPositionCommand(jointvalues);
+	armPublisher.publish(msg);
+	ros::Duration(0.5).sleep();
+}
+
 int main(int argc, char **argv)
 {
 	set_keypress();
-	char Pressed_Key = 0;
-	bool Flag_Move_Arm_Joints = false;
-	double Current_Arm_Joint_Position = 0.11;
-	int Current_Arm_Joint = 0;
 
 	ros::init(argc, argv, "youbot_ros_hello_world");
 	ros::NodeHandle n;
@@ -140,12 +187,19 @@ int main(int argc, char **argv)
 	armPublisher = n.advertise<brics_actuator::JointPositions>("arm_1/arm_controller/position_command", 1);
 	gripperPublisher = n.advertise<brics_actuator::JointPositions>("arm_1/gripper_controller/position_command", 1);
 	sleep(1);
+	
 
 	ROS_INFO("getch test");
 	while (ros::ok())
 	{
 		cin >> Pressed_Key;
 		cout << "pressed: " << Pressed_Key << endl;
+
+		if(Pressed_Key == '`')
+		{
+			ROS_INFO("Exit");
+			ros::shutdown();
+		}
 
 		if(Flag_Move_Arm_Joints == false)
 		{
@@ -163,13 +217,13 @@ int main(int argc, char **argv)
 					Flag_Move_Arm_Joints = true;
 					ROS_INFO("Move arm by joints");
 				break;
-			}
+			}			
 		}
 		else if(Flag_Move_Arm_Joints == true)
 		{
 			//ROS_INFO("Move arm by joints");
-			brics_actuator::JointPositions msg;
-			std::vector<double> jointvalues(5);
+			//brics_actuator::JointPositions msg;
+			//std::vector<double> jointvalues(5);
 
 			switch(Pressed_Key)
 			{
@@ -178,37 +232,68 @@ int main(int argc, char **argv)
 					ROS_INFO("Move arm by positions");
 				break;
 
+				case 'q':					
+					ROS_INFO("Big step position");
+					Step_Position = 0.4;
+				break;
+
+				case 'w':
+					ROS_INFO("Middle step position");
+					Step_Position = 0.15;
+				break;
+
+				case 'e':
+					ROS_INFO("Low arm by positions");
+					Step_Position = 0.02;
+				break;
+
 				case '0':
 					Current_Arm_Joint = 0;
+					Current_Arm_Joint_Position = jointvalues[0];
 					cout << "Current_Arm_Joint: " << Current_Arm_Joint << endl;
 				break;
 
 				case '1':
 					Current_Arm_Joint = 1;
-					cout << "Current_Arm_Joint_Position: " << Current_Arm_Joint << endl;
+					Current_Arm_Joint_Position = jointvalues[1];
+					cout << "Current_Arm_Joint: " << Current_Arm_Joint << endl;
+				break;
+
+				case '2':
+					Current_Arm_Joint = 2;
+					Current_Arm_Joint_Position = jointvalues[2];
+					cout << "Current_Arm_Joint: " << Current_Arm_Joint << endl;
+				break;
+
+				case '3':
+					Current_Arm_Joint = 3;
+					Current_Arm_Joint_Position = jointvalues[3];
+					cout << "Current_Arm_Joint: " << Current_Arm_Joint << endl;
+				break;
+
+				case '4':
+					Current_Arm_Joint = 4;
+					Current_Arm_Joint_Position = jointvalues[4];
+					cout << "Current_Arm_Joint: " << Current_Arm_Joint << endl;
 				break;
 
 				case ']':
-					Current_Arm_Joint_Position = Current_Arm_Joint_Position + 0.1;
-					jointvalues[0] = Current_Arm_Joint_Position;	
-					cout << "Current_Arm_Joint_Position: " << Current_Arm_Joint_Position << endl;				
+					Current_Arm_Joint_Position = Current_Arm_Joint_Position + Step_Position;
+					jointvalues[Current_Arm_Joint] = Current_Arm_Joint_Position;
+					Check_Joint_Range(Current_Arm_Joint);	
+					cout << "Current_Arm_Joint_Position: " << Current_Arm_Joint_Position << endl;	
+					Arm_Publish();			
 				break;
 
 				case '[':
-					Current_Arm_Joint_Position = Current_Arm_Joint_Position - 0.1;
-					jointvalues[Current_Arm_Joint] = Current_Arm_Joint_Position - 0.1;
+					Current_Arm_Joint_Position = Current_Arm_Joint_Position - Step_Position;
+					jointvalues[Current_Arm_Joint] = Current_Arm_Joint_Position;
+					Check_Joint_Range(Current_Arm_Joint);	
 					cout << "Current_Arm_Joint_Position: " << Current_Arm_Joint_Position << endl;
+					Arm_Publish();
 				break;
-			}	
-			jointvalues[1] = 0.11;
-			jointvalues[2] = -0.11;
-			jointvalues[3] = 0.11;
-			jointvalues[4] = 0.111;
-			msg = createArmPositionCommand(jointvalues);
-			armPublisher.publish(msg);
-			ros::Duration(0.5).sleep();
-
-		}
+			}				
+		}	
 		
 	}
 
