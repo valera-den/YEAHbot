@@ -9,11 +9,11 @@
 #include <string.h>
 #include <iostream>
 /*
-Joint 0: 0.0100692 - 5.84014		0.6 - 285.5 grad
-Joint 1: 0.0100692 - 2.61799		0.6 - 149.9 grad
-Joint 2: -5.02655  - -0.215708		-288 - -12.36 grad
-Joint 3: 0.0221239 - 3.4292		1.27 - 196.47 grad
-Joint 4: 0.110619  - 5.64159		6.34 - 323.24 grad
+Joint 0: 0.0100692 - 5.84014
+Joint 1: 0.0100692 - 2.61799
+Joint 2: -5.02655  - -0.215708
+Joint 3: 0.0221239 - 3.4292
+Joint 4: 0.110619  - 5.64159
 */
 double Array_Joints_Range[5][2] =
 {
@@ -34,7 +34,7 @@ ros::Publisher platformPublisher;
 ros::Publisher armPublisher;
 ros::Publisher gripperPublisher;
 
-brics_actuator::JointPositions createArmPositionCommand(std::vector<double>& newPositions) 
+brics_actuator::JointPositions createArmPositionCommand(std::vector<double>& newPositions)
 {
 	int numberOfJoints = 5;
 	brics_actuator::JointPositions msg;
@@ -42,7 +42,7 @@ brics_actuator::JointPositions createArmPositionCommand(std::vector<double>& new
 	if (newPositions.size() < numberOfJoints)
 		return msg; // return empty message if not enough values provided
 
-	for (int i = 0; i < numberOfJoints; i++) 
+	for (int i = 0; i < numberOfJoints; i++)
 	{
 		// Set all values for one joint, i.e. time, name, value and unit
 		brics_actuator::JointValue joint;
@@ -63,7 +63,7 @@ brics_actuator::JointPositions createArmPositionCommand(std::vector<double>& new
 }
 
 // create a brics actuator message for the gripper using the same position for both fingers
-brics_actuator::JointPositions createGripperPositionCommand(double newPosition) 
+brics_actuator::JointPositions createGripperPositionCommand(double newPosition)
 {
 	brics_actuator::JointPositions msg;
 
@@ -72,9 +72,9 @@ brics_actuator::JointPositions createGripperPositionCommand(double newPosition)
 	joint.unit = boost::units::to_string(boost::units::si::meter); // = "m"
 	joint.value = newPosition;
 	joint.joint_uri = "gripper_finger_joint_l";
-	msg.positions.push_back(joint);		
+	msg.positions.push_back(joint);
 	joint.joint_uri = "gripper_finger_joint_r";
-	msg.positions.push_back(joint);		
+	msg.positions.push_back(joint);
 
 	return msg;
 }
@@ -84,8 +84,8 @@ std::vector<double> jointvalues(5);
 
 using namespace std;
 static struct termios stored_settings;
-     
-void moveArm_Home() 
+
+void moveArm_Home()
 {
 	//brics_actuator::JointPositions msg;
 	//std::vector<double> jointvalues(5);
@@ -103,7 +103,7 @@ void moveArm_Home()
 	ros::Duration(2).sleep();
 }
 
-void moveArm_Up() 
+void moveArm_Up()
 {
 	//brics_actuator::JointPositions msg;
 	//std::vector<double> jointvalues(5);
@@ -159,14 +159,14 @@ void Check_Joint_Range(int Joint_Number)
 	{
 		jointvalues[Joint_Number] = Array_Joints_Range[Joint_Number][0];
 		Current_Arm_Joint_Position = Array_Joints_Range[Joint_Number][0];
-		ROS_INFO("Joint is out of minimum range");		
+		ROS_INFO("Joint is out of minimum range");
 	}
 	else if(jointvalues[Joint_Number] > Array_Joints_Range[Joint_Number][1])
 	{
 		jointvalues[Joint_Number] = Array_Joints_Range[Joint_Number][1];
 		Current_Arm_Joint_Position = Array_Joints_Range[Joint_Number][1];
 		ROS_INFO("Joint is out of maximum range");
-	}	
+	}
 }
 
 void Arm_Publish()
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
 	armPublisher = n.advertise<brics_actuator::JointPositions>("arm_1/arm_controller/position_command", 1);
 	gripperPublisher = n.advertise<brics_actuator::JointPositions>("arm_1/gripper_controller/position_command", 1);
 	sleep(1);
-	
+
 
 	ROS_INFO("getch test");
 	while (ros::ok())
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 					Flag_Move_Arm_Joints = true;
 					ROS_INFO("Move arm by joints");
 				break;
-			}			
+			}
 		}
 		else if(Flag_Move_Arm_Joints == true)
 		{
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 					ROS_INFO("Move arm by positions");
 				break;
 
-				case 'q':					
+				case 'q':
 					ROS_INFO("Big step position");
 					Step_Position = 0.4;
 				break;
@@ -280,21 +280,21 @@ int main(int argc, char **argv)
 				case ']':
 					Current_Arm_Joint_Position = Current_Arm_Joint_Position + Step_Position;
 					jointvalues[Current_Arm_Joint] = Current_Arm_Joint_Position;
-					Check_Joint_Range(Current_Arm_Joint);	
-					cout << "Current_Arm_Joint_Position: " << Current_Arm_Joint_Position << endl;	
-					Arm_Publish();			
+					Check_Joint_Range(Current_Arm_Joint);
+					cout << "Current_Arm_Joint_Position: " << Current_Arm_Joint_Position << endl;
+					Arm_Publish();
 				break;
 
 				case '[':
 					Current_Arm_Joint_Position = Current_Arm_Joint_Position - Step_Position;
 					jointvalues[Current_Arm_Joint] = Current_Arm_Joint_Position;
-					Check_Joint_Range(Current_Arm_Joint);	
+					Check_Joint_Range(Current_Arm_Joint);
 					cout << "Current_Arm_Joint_Position: " << Current_Arm_Joint_Position << endl;
 					Arm_Publish();
 				break;
-			}				
-		}	
-		
+			}
+		}
+
 	}
 
 	sleep(1);
