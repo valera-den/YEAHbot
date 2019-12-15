@@ -1,1 +1,3 @@
 make txt file in term
+
+change file via github
