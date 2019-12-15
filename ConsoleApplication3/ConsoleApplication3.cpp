@@ -3,14 +3,10 @@
 
 #include <iostream>
 
-void foo()
-{
-
-}
 
 int main()
 {
-	foo();
+
     std::cout << "Hello World!\n";
 }
 
